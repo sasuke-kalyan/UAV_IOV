@@ -1,39 +1,59 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 
+from lagrangian_solver import base_reward, run_primal_dual
+
 # Load dataset
 df = pd.read_csv("uav_iov_dataset.csv")
 
-# Reward calculation
-rewards = []
+# Original reward (for comparison)
+df["Reward"] = df.apply(base_reward, axis=1)
 
-for index, row in df.iterrows():
+print("\n======================================")
+print(" Lagrangian RL Reward Optimization ")
+print("======================================\n")
 
-    signal = row['Signal_Strength']
-    delay = row['Delay']
-    pdr = row['PDR']
+# Primal-dual Lagrangian on full dataset
+df_lag, final_lambda = run_primal_dual(df, objective_col="Reward")
 
-    # Basic reward logic
-    reward = (signal * 100) + pdr - delay
+print("\nFinal multipliers:")
+print(final_lambda)
 
-    rewards.append(reward)
+print("\nSample rows (Reward vs Lagrangian_Score):\n")
+print(
+    df_lag[
+        [
+            "Vehicle_ID",
+            "UAV_ID",
+            "Delay",
+            "PDR",
+            "Energy",
+            "Reward",
+            "Lagrangian_Score",
+            "Violation_Delay",
+            "Violation_PDR",
+            "Violation_Energy",
+        ]
+    ].head(10)
+)
 
-# Add rewards to dataset
-df['Reward'] = rewards
+# Compare average reward per vehicle: unconstrained vs Lagrangian
+avg_reward = df_lag.groupby("Vehicle_ID")["Reward"].mean()
+avg_lag = df_lag.groupby("Vehicle_ID")["Lagrangian_Score"].mean()
 
-# Average reward per vehicle
-avg_reward = df.groupby('Vehicle_ID')['Reward'].mean()
-
-print("\nRL OPTIMIZATION REWARD ANALYSIS\n")
+print("\nAverage unconstrained Reward per vehicle:\n")
 print(avg_reward)
 
-# Plot graph
-plt.figure(figsize=(7,5))
+print("\nAverage Lagrangian_Score per vehicle:\n")
+print(avg_lag)
 
-avg_reward.plot(kind='bar')
-
-plt.title("Average RL Reward per Vehicle")
+# Plot (Lagrangian score per vehicle)
+plt.figure(figsize=(7, 5))
+avg_lag.plot(kind="bar")
+plt.title("Average Lagrangian Score per Vehicle")
 plt.xlabel("Vehicle ID")
-plt.ylabel("Reward")
-
+plt.ylabel("Lagrangian Score")
+plt.tight_layout()
 plt.show()
+
+print("\nLagrangian RL optimization completed.\n")
