@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 
+from communication_model import compute_link_metrics
+
 # Number of samples
 num_samples = 100
 
@@ -44,39 +46,13 @@ for t in range(num_samples):
     # UAV Altitude (Z-axis)
     uav_z = np.random.randint(80, 200)
 
-    # Communication Range
-    communication_range = 500
-
-    # 3D Distance Calculation
-    distance = (
-        (vehicle_x - uav_x) ** 2 +
-        (vehicle_y - uav_y) ** 2 +
-        (uav_z) ** 2
-    ) ** 0.5
-
-    # Signal Strength Based on Distance & Coverage
-    if distance <= communication_range:
-
-        signal_strength = round(
-            max(0.1, 1 - (distance / communication_range)),
-            2
-        )
-
-    else:
-        # Out of communication range
-        signal_strength = 0.05
-
-    # Dynamic Delay Calculation
-    delay = round(
-        min(100, distance / 10 + np.random.randint(1, 10)),
-        2
+    metrics = compute_link_metrics(
+        vehicle_x, vehicle_y, uav_x, uav_y, uav_z
     )
-
-    # Dynamic Packet Delivery Ratio (PDR)
-    pdr = round(
-        max(50, signal_strength * 100 - delay / 2),
-        2
-    )
+    distance = metrics["Distance"]
+    signal_strength = metrics["Signal_Strength"]
+    delay = metrics["Delay"]
+    pdr = metrics["PDR"]
 
     # UAV Energy
     energy = np.random.randint(10, 50)

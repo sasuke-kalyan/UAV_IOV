@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 import pandas as pd
 
 import constraints as cons
+from communication_model import base_reward as scalar_base_reward
 
 
 @dataclass
@@ -27,11 +28,9 @@ class LagrangianConfig:
 
 
 def base_reward(row) -> float:
-    """Same idea as rl_optimization.py."""
-    return (
-        float(row["Signal_Strength"]) * 100.0
-        + float(row["PDR"])
-        - float(row["Delay"])
+    """Per-row reward (shared with PPO objective)."""
+    return scalar_base_reward(
+        row["Signal_Strength"], row["PDR"], row["Delay"]
     )
 
 

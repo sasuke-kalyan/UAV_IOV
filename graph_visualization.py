@@ -50,4 +50,8 @@ nx.draw_networkx_edge_labels(
 
 plt.title("Weighted UAV-IoV Communication Graph")
 
+plt.savefig("uav_iov_graph.png", dpi=120)
+print("\nSaved: uav_iov_graph.png")
+print("Train GAT on graph link scores: python train_gat.py")
+
 plt.show()
