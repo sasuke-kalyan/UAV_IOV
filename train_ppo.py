@@ -18,6 +18,7 @@ from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.monitor import Monitor
 
+import network_config as net
 from uav_iov_env import UAVIoVEnv
 
 MODEL_DIR = Path("models")
@@ -29,7 +30,7 @@ def make_env():
     return Monitor(UAVIoVEnv())
 
 
-def train(total_timesteps: int = 100_000, n_envs: int = 4) -> Path:
+def train(total_timesteps: int = 200_000, n_envs: int = 4) -> Path:
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
     LOG_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -50,17 +51,22 @@ def train(total_timesteps: int = 100_000, n_envs: int = 4) -> Path:
         vec_env,
         learning_rate=3e-4,
         n_steps=512,
-        batch_size=64,
+        batch_size=128,
         n_epochs=10,
         gamma=0.99,
         gae_lambda=0.95,
         clip_range=0.2,
-        ent_coef=0.01,
+        ent_coef=0.02,
+        policy_kwargs=dict(net_arch=dict(pi=[128, 128], vf=[128, 128])),
         verbose=1,
         tensorboard_log=str(LOG_DIR),
     )
 
-    print(f"\nTraining PPO for {total_timesteps:,} timesteps ({n_envs} parallel envs)...\n")
+    print(
+        f"\nTraining PPO ({net.NUM_UAVS} UAVs, obs dim "
+        f"{UAVIoVEnv().observation_space.shape[0]}) "
+        f"for {total_timesteps:,} timesteps ({n_envs} parallel envs)...\n"
+    )
     model.learn(total_timesteps=total_timesteps, callback=eval_callback, progress_bar=True)
 
     model.save(str(MODEL_PATH))
@@ -77,8 +83,8 @@ def main():
     parser.add_argument(
         "--timesteps",
         type=int,
-        default=100_000,
-        help="Total environment steps for training (default: 100000)",
+        default=200_000,
+        help="Total environment steps for training (default: 200000)",
     )
     parser.add_argument(
         "--n-envs",

@@ -184,6 +184,20 @@ def iter_graphs(
     return graphs
 
 
+def snapshot_at_timestamp(df: pd.DataFrame, timestamp: int | None = None) -> pd.DataFrame:
+    """All vehicle–UAV links at one timestep."""
+    if timestamp is None:
+        timestamp = int(df["Timestamp"].max())
+    return df[df["Timestamp"] == timestamp].copy()
+
+
+def iter_vehicle_snapshots(df: pd.DataFrame):
+    """Yield (timestamp, vehicle_id, rows) with every UAV link for that vehicle."""
+    for timestamp, snap in df.groupby("Timestamp"):
+        for vehicle_id, group in snap.groupby("Vehicle_ID"):
+            yield int(timestamp), str(vehicle_id), group.reset_index(drop=True)
+
+
 def train_val_split(
     graphs: list[GraphSample],
     val_ratio: float = 0.2,

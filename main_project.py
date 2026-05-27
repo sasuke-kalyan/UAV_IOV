@@ -1,6 +1,7 @@
 import pandas as pd
 
-# Load Dataset
+from network_config import NUM_UAVS, NUM_VEHICLES
+
 df = pd.read_csv("uav_iov_dataset.csv")
 
 print("\n==========================================")
@@ -22,8 +23,10 @@ total_vehicles = df['Vehicle_ID'].nunique()
 # Total UAVs
 total_uavs = df['UAV_ID'].nunique()
 
-print("Total Vehicles :", total_vehicles)
-print("Total UAVs     :", total_uavs)
+print("Total Vehicles :", total_vehicles, f"(configured: {NUM_VEHICLES})")
+print("Total UAVs     :", total_uavs, f"(configured: {NUM_UAVS})")
+print("Timesteps      :", df["Timestamp"].nunique())
+print("Link records   :", len(df))
 
 # Average Metrics
 print("\n==========================================")

@@ -1,22 +1,15 @@
 import pandas as pd
 
-# Load dataset
+from graph_data import snapshot_at_timestamp
+
 df = pd.read_csv("uav_iov_dataset.csv")
+snap = snapshot_at_timestamp(df)
 
 print("\nBEST UAV SELECTION RESULTS\n")
 
-# Group by vehicle
-vehicles = df['Vehicle_ID'].unique()
-
-for vehicle in vehicles:
-
-    # Get rows for current vehicle
-    vehicle_data = df[df['Vehicle_ID'] == vehicle]
-
-    # Find row with maximum signal strength
-    best_row = vehicle_data.loc[
-        vehicle_data['Signal_Strength'].idxmax()
-    ]
+for vehicle in snap["Vehicle_ID"].unique():
+    vehicle_data = snap[snap["Vehicle_ID"] == vehicle]
+    best_row = vehicle_data.loc[vehicle_data["Signal_Strength"].idxmax()]
 
     print(f"Vehicle: {vehicle}")
     print(f"Best UAV: {best_row['UAV_ID']}")

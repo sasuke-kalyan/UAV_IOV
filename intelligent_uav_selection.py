@@ -1,7 +1,9 @@
 import pandas as pd
 
-# Load Dataset
+from graph_data import snapshot_at_timestamp
+
 df = pd.read_csv("uav_iov_dataset.csv")
+snap = snapshot_at_timestamp(df)
 
 # Reliability Score Calculation
 df['Reliability_Score'] = (
@@ -15,8 +17,8 @@ print(" Intelligent UAV Selection System ")
 print("======================================\n")
 
 # Find Best UAV Communication Records
-best_connections = df.loc[
-    df.groupby('Vehicle_ID')['Reliability_Score'].idxmax()
+best_connections = snap.loc[
+    snap.groupby("Vehicle_ID")["Reliability_Score"].idxmax()
 ]
 
 # Display Best UAV Selection

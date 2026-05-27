@@ -13,7 +13,7 @@ import torch.nn as nn
 
 from communication_model import shaped_reward
 from gat_model import UAVIoVGAT
-from graph_data import GraphSample, build_routing_graph, iter_graphs, train_val_split
+from graph_data import GraphSample, build_routing_graph, iter_graphs, iter_vehicle_snapshots, train_val_split
 
 MODEL_PATH = Path("models/gat_uav_iov.pt")
 
@@ -22,7 +22,10 @@ def load_model(device: torch.device) -> UAVIoVGAT:
     if not MODEL_PATH.exists():
         raise FileNotFoundError(f"No GAT checkpoint at {MODEL_PATH}. Run: python train_gat.py")
     ckpt = torch.load(MODEL_PATH, map_location=device, weights_only=False)
-    model = UAVIoVGAT().to(device)
+    model = UAVIoVGAT(
+        hidden=ckpt.get("hidden", 32),
+        heads=ckpt.get("heads", 4),
+    ).to(device)
     model.load_state_dict(ckpt["model_state"])
     model.eval()
     return model
@@ -32,7 +35,7 @@ def routing_accuracy(model: UAVIoVGAT, df: pd.DataFrame, device: torch.device) -
     correct = 0
     total = 0
 
-    for _, group in df.groupby("Vehicle_ID"):
+    for _, vehicle_id, group in iter_vehicle_snapshots(df):
         if len(group) < 2:
             continue
 

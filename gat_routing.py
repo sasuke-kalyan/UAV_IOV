@@ -11,7 +11,7 @@ import torch
 
 from communication_model import shaped_reward
 from gat_model import UAVIoVGAT
-from graph_data import GraphSample, build_routing_graph
+from graph_data import GraphSample, build_routing_graph, snapshot_at_timestamp
 
 MODEL_PATH = Path("models/gat_uav_iov.pt")
 
@@ -21,16 +21,20 @@ def load_gat(device: torch.device | None = None) -> UAVIoVGAT:
     if not MODEL_PATH.exists():
         raise FileNotFoundError(f"Train GAT first: python train_gat.py (missing {MODEL_PATH})")
     ckpt = torch.load(MODEL_PATH, map_location=device, weights_only=False)
-    model = UAVIoVGAT().to(device)
+    model = UAVIoVGAT(
+        hidden=ckpt.get("hidden", 32),
+        heads=ckpt.get("heads", 4),
+    ).to(device)
     model.load_state_dict(ckpt["model_state"])
     model.eval()
     return model
 
 
 def best_uav_per_vehicle(model: UAVIoVGAT, df: pd.DataFrame, device: torch.device) -> pd.DataFrame:
+    snap = snapshot_at_timestamp(df)
     rows = []
 
-    for vehicle_id, group in df.groupby("Vehicle_ID"):
+    for vehicle_id, group in snap.groupby("Vehicle_ID"):
         g = build_routing_graph(group)
         with torch.no_grad():
             sample = GraphSample(
@@ -45,19 +49,18 @@ def best_uav_per_vehicle(model: UAVIoVGAT, df: pd.DataFrame, device: torch.devic
             scores = model.forward_routing(sample).cpu().numpy()
 
         best_i = int(scores.argmax())
+        rewards = group.apply(
+            lambda r: shaped_reward(
+                r["Signal_Strength"], r["PDR"], r["Delay"], r["Energy"]
+            ),
+            axis=1,
+        )
         rows.append(
             {
                 "Vehicle_ID": vehicle_id,
                 "GAT_UAV": g.uav_ids[best_i],
                 "GAT_Score": round(float(scores[best_i]), 2),
-                "True_Best_UAV": group.loc[
-                    group.apply(
-                        lambda r: shaped_reward(
-                            r["Signal_Strength"], r["PDR"], r["Delay"], r["Energy"]
-                        ),
-                        axis=1,
-                    ).idxmax()
-                ]["UAV_ID"],
+                "True_Best_UAV": group.loc[rewards.idxmax()]["UAV_ID"],
             }
         )
 

@@ -17,6 +17,7 @@ import torch.nn as nn
 
 from gat_model import UAVIoVGAT
 from graph_data import GraphSample, iter_graphs, train_val_split
+import network_config as net
 
 MODEL_DIR = Path("models")
 MODEL_PATH = MODEL_DIR / "gat_uav_iov.pt"
@@ -50,7 +51,7 @@ def train(epochs: int = 200, lr: float = 1e-3) -> Path:
 
     train_graphs, val_graphs = train_val_split(graphs, val_ratio=0.2)
 
-    model = UAVIoVGAT().to(device)
+    model = UAVIoVGAT(hidden=64, heads=4).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-5)
     criterion = nn.MSELoss()
 
@@ -78,6 +79,8 @@ def train(epochs: int = 200, lr: float = 1e-3) -> Path:
             torch.save(
                 {
                     "model_state": model.state_dict(),
+                    "hidden": 64,
+                    "heads": 4,
                     "epochs": epoch,
                     "val_loss": val_loss,
                 },
@@ -89,7 +92,11 @@ def train(epochs: int = 200, lr: float = 1e-3) -> Path:
                 f"Epoch {epoch:4d} | train MSE {train_loss:.4f} | val MSE {val_loss:.4f}"
             )
 
-    print(f"\nBest val MSE: {best_val:.4f}")
+    print(
+        f"\nFleet: {net.NUM_VEHICLES} vehicles, {net.NUM_UAVS} UAVs | "
+        f"graphs: {len(graphs)} (train {len(train_graphs)}, val {len(val_graphs)})"
+    )
+    print(f"Best val MSE: {best_val:.4f}")
     print(f"Model saved to {MODEL_PATH}")
     print("Next: python evaluate_gat.py  or  python gat_routing.py")
     return MODEL_PATH

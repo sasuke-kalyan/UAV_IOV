@@ -1,24 +1,24 @@
 import pandas as pd
 
+from graph_data import snapshot_at_timestamp
 from lagrangian_solver import base_routing_score, add_lagrangian_columns, LagrangianMultipliers
 
-# Load dataset
 df = pd.read_csv("uav_iov_dataset.csv")
+snap = snapshot_at_timestamp(df)
 
 print("\n======================================")
 print(" Lagrangian Smart Routing Optimization ")
 print("======================================\n")
 
 # Routing objective (same as before)
-df["Routing_Score"] = df.apply(base_routing_score, axis=1)
+snap["Routing_Score"] = snap.apply(base_routing_score, axis=1)
 
-# One pass with final-like lambdas (or run 3-5 dual iters locally)
 lam = LagrangianMultipliers(delay=2.0, pdr=1.5, energy=1.5, signal=0.5)
-df = add_lagrangian_columns(df, lam, objective_col="Routing_Score")
+snap = add_lagrangian_columns(snap, lam, objective_col="Routing_Score")
 
 print("Routing with constraints (sample):\n")
 print(
-    df[
+    snap[
         [
             "Vehicle_ID",
             "UAV_ID",
@@ -31,7 +31,7 @@ print(
 )
 
 # Best route per vehicle: maximize Lagrangian_Score
-best_routes = df.loc[df.groupby("Vehicle_ID")["Lagrangian_Score"].idxmax()]
+best_routes = snap.loc[snap.groupby("Vehicle_ID")["Lagrangian_Score"].idxmax()]
 
 print("\nBest constrained route per vehicle:\n")
 for _, row in best_routes.iterrows():
@@ -46,9 +46,9 @@ print("\n======================================")
 print(" Network-Wide Routing Statistics ")
 print("======================================\n")
 
-avg_route = round(df["Routing_Score"].mean(), 2)
-avg_lag = round(df["Lagrangian_Score"].mean(), 2)
-best_uav = df.groupby("UAV_ID")["Lagrangian_Score"].mean().idxmax()
+avg_route = round(snap["Routing_Score"].mean(), 2)
+avg_lag = round(snap["Lagrangian_Score"].mean(), 2)
+best_uav = snap.groupby("UAV_ID")["Lagrangian_Score"].mean().idxmax()
 
 print(f"Average Routing Score     : {avg_route}")
 print(f"Average Lagrangian Score  : {avg_lag}")

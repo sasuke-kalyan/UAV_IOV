@@ -16,6 +16,7 @@ from communication_model import (
     compute_link_metrics,
     shaped_reward,
 )
+import network_config as net
 
 
 class UAVIoVEnv(gym.Env):
@@ -23,7 +24,7 @@ class UAVIoVEnv(gym.Env):
 
     metadata = {"render_modes": []}
 
-    NUM_UAVS = 2
+    NUM_UAVS = net.NUM_UAVS
     MAX_EPISODE_STEPS = 100
 
     def __init__(self, render_mode=None):

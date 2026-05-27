@@ -97,7 +97,18 @@ def main():
 
     from stable_baselines3 import PPO
 
+    env_check = UAVIoVEnv()
     model = PPO.load(str(MODEL_PATH))
+    if model.observation_space.shape != env_check.observation_space.shape:
+        print(
+            f"\nStale PPO model: expected obs shape {env_check.observation_space.shape}, "
+            f"got {model.observation_space.shape}."
+        )
+        print("Re-train after fleet size change: python train_ppo.py")
+        env_check.close()
+        return
+    env_check.close()
+
     ppo_stats = run_episodes(
         lambda env, obs: _ppo_policy(model, env, obs),
         n_episodes=n_episodes,

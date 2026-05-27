@@ -2,53 +2,41 @@ import pandas as pd
 import networkx as nx
 import matplotlib.pyplot as plt
 
-# Load dataset
-df = pd.read_csv("uav_iov_dataset.csv")
+from graph_data import snapshot_at_timestamp
 
-# Create graph
+df = pd.read_csv("uav_iov_dataset.csv")
+snap = snapshot_at_timestamp(df)
+
 G = nx.Graph()
 
-# Take first 20 rows
-sample_data = df.head(20)
+for _, row in snap.iterrows():
+    vehicle = row["Vehicle_ID"]
+    uav = row["UAV_ID"]
+    signal = row["Signal_Strength"]
 
-# Add nodes and weighted edges
-for index, row in sample_data.iterrows():
+    G.add_node(vehicle, type="vehicle")
+    G.add_node(uav, type="uav")
+    G.add_edge(vehicle, uav, weight=round(signal, 3))
 
-    vehicle = row['Vehicle_ID']
-    uav = row['UAV_ID']
-    signal = row['Signal_Strength']
+pos = nx.spring_layout(G, seed=42)
 
-    # Add nodes
-    G.add_node(vehicle, type='vehicle')
-    G.add_node(uav, type='uav')
-
-    # Add weighted communication edge
-    G.add_edge(vehicle, uav, weight=signal)
-
-# Create graph layout
-pos = nx.spring_layout(G)
-
-# Draw graph
-plt.figure(figsize=(10,7))
+plt.figure(figsize=(12, 9))
 
 nx.draw(
     G,
     pos,
     with_labels=True,
-    node_size=3000,
-    font_size=10
+    node_size=2500,
+    font_size=9,
 )
 
-# Edge labels
-edge_labels = nx.get_edge_attributes(G, 'weight')
+edge_labels = nx.get_edge_attributes(G, "weight")
+nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=7)
 
-nx.draw_networkx_edge_labels(
-    G,
-    pos,
-    edge_labels=edge_labels
+plt.title(
+    f"UAV-IoV Communication Graph (timestamp {int(snap['Timestamp'].iloc[0])}, "
+    f"{snap['Vehicle_ID'].nunique()} vehicles, {snap['UAV_ID'].nunique()} UAVs)"
 )
-
-plt.title("Weighted UAV-IoV Communication Graph")
 
 plt.savefig("uav_iov_graph.png", dpi=120)
 print("\nSaved: uav_iov_graph.png")

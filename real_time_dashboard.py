@@ -1,95 +1,49 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# Load dataset
+from communication_model import AREA_SIZE
+from graph_data import snapshot_at_timestamp
+
 df = pd.read_csv("uav_iov_dataset.csv")
+timestamps = sorted(df["Timestamp"].unique())[:20]
 
-# Create figure
-plt.figure(figsize=(8,8))
+plt.figure(figsize=(10, 10))
 
-# Run only first 20 timestamps
-for i in range(20):
-
-    # Clear previous frame
+for t in timestamps:
     plt.clf()
+    snap = snapshot_at_timestamp(df, int(t))
 
-    # Current row
-    row = df.iloc[i]
+    # Draw one active link per vehicle (best-signal UAV) to avoid clutter.
+    best_links = snap.loc[snap.groupby("Vehicle_ID")["Signal_Strength"].idxmax()]
+    for _, row in best_links.iterrows():
+        plt.plot(
+            [row["Vehicle_X"], row["UAV_X"]],
+            [row["Vehicle_Y"], row["UAV_Y"]],
+            c="gray",
+            alpha=0.45,
+            linewidth=1.2,
+        )
 
-    # Vehicle Position
-    vx = row['Vehicle_X']
-    vy = row['Vehicle_Y']
+    for _, row in snap.drop_duplicates("Vehicle_ID").iterrows():
+        plt.scatter(row["Vehicle_X"], row["Vehicle_Y"], s=80, c="tab:blue")
+        plt.text(row["Vehicle_X"] + 8, row["Vehicle_Y"] + 8, row["Vehicle_ID"], fontsize=7)
 
-    # UAV Position
-    ux = row['UAV_X']
-    uy = row['UAV_Y']
+    for _, row in snap.drop_duplicates("UAV_ID").iterrows():
+        plt.scatter(row["UAV_X"], row["UAV_Y"], s=140, marker="^", c="tab:orange")
+        plt.text(row["UAV_X"] + 8, row["UAV_Y"] + 8, row["UAV_ID"], fontsize=7)
 
-    # Signal Strength
-    signal = row['Signal_Strength']
+    avg_signal = snap["Signal_Strength"].mean()
+    quality = "Strong" if avg_signal >= 0.7 else "Medium" if avg_signal >= 0.4 else "Weak"
 
-    # Communication Quality
-    if signal >= 0.7:
-        quality = "Strong"
-
-    elif signal >= 0.4:
-        quality = "Medium"
-
-    else:
-        quality = "Weak"
-
-    # Plot Vehicle
-    plt.scatter(
-        vx,
-        vy,
-        s=120,
-        label='Vehicle'
-    )
-
-    # Plot UAV
-    plt.scatter(
-        ux,
-        uy,
-        s=200,
-        marker='^',
-        label='UAV'
-    )
-
-    # Communication Link
-    plt.plot(
-        [vx, ux],
-        [vy, uy]
-    )
-
-    # Vehicle Label
-    plt.text(vx + 10, vy + 10,
-             row['Vehicle_ID'])
-
-    # UAV Label
-    plt.text(ux + 10, uy + 10,
-             row['UAV_ID'])
-
-    # Title
     plt.title(
-        f"Real-Time UAV-IoV Communication\n"
-        f"Signal Strength: {signal} | "
-        f"Quality: {quality}"
+        f"UAV-IoV Network (t={int(t)})\n"
+        f"{snap['Vehicle_ID'].nunique()} vehicles, {snap['UAV_ID'].nunique()} UAVs | "
+        f"Avg signal: {avg_signal:.2f} ({quality})"
     )
-
-    # Axis Limits
-    plt.xlim(0, 1000)
-    plt.ylim(0, 1000)
-
-    # Grid
+    plt.xlim(0, AREA_SIZE)
+    plt.ylim(0, AREA_SIZE)
     plt.grid(True)
+    plt.pause(0.4)
 
-    # Legend
-    plt.legend()
-
-    # Pause for animation
-    plt.pause(0.5)
-
-# Automatically close after completion
 plt.close()
-
-# Final show
-plt.show()
+print("\nDashboard animation completed.")
